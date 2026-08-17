@@ -1,0 +1,5 @@
+﻿strategy,IS_ann,IS_sharpe,IS_mdd,IS_active,OOS_ann,OOS_sharpe,OOS_mdd,OOS_active,OOS_final
+Mom6_top20 + daily SPY>50dSMA,21.1%,1.10,-17.1%,76%,18.5%,0.80,-28.4%,67%,"$43,700"
+Mom6_top20 + daily SPY>100dSMA,26.4%,1.29,-22.9%,80%,23.5%,0.90,-32.5%,72%,"$52,840"
+Mom6_top20 + daily SPY>200dSMA,26.8%,1.28,-21.8%,80%,25.1%,0.93,-32.5%,75%,"$55,941"
+Base Mom6_top20 (no cash filter),35.8%,1.13,-32.5%,100%,35.8%,1.13,-32.5%,100%,"$81,643"
