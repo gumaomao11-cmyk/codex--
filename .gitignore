@@ -4,7 +4,6 @@
 *.h5
 *.feather
 *.arrow
-data/
 data_sample/
 raw_data/
 
@@ -22,3 +21,8 @@ venv/
 
 # temp
 *.log
+
+# local secrets (do not commit)
+mail.env
+alpaca.env
+

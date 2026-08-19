@@ -1,0 +1,91 @@
+name: Strategy Daily
+
+on:
+  # 21:30 UTC = 次日 05:30 北京时间（美股收盘约 1.5h 后）
+  schedule:
+    - cron: '30 21 * * *'
+    # 22:00 UTC = 次日 06:00 北京时间
+    - cron: '0 22 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  # === 每天 21:30 UTC: 更新股票 + ETF 数据 ===
+  update-data:
+    if: github.event.schedule == '30 21 * * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install CJK font (for matplotlib chart in weekly PDF)
+        run: sudo apt-get install -y fonts-noto-cjk fontconfig
+      - name: Install Python deps
+        run: pip install --quiet requests pandas numpy reportlab matplotlib
+      - name: Update stock wide prices
+        env:
+          STOCK_DATA_DIR: ${{ github.workspace }}/data
+        run: python update_prices_wide.py
+      - name: Update ETF reference
+        env:
+          ETFS_REF_FILE: ${{ github.workspace }}/data/etf-ref.csv
+        run: python update_etf_ref.py
+      - name: Commit & push data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/
+          if ! git diff --staged --quiet; then
+            git commit -m "chore(data): auto-update $(date -u +%Y-%m-%d)"
+            git push
+          else
+            echo "no data changes"
+          fi
+      - name: Notify failure (WeChat + email)
+        if: failure()
+        env:
+          WECHAT_SEND_KEY: ${{ secrets.WECHAT_SEND_KEY }}
+          QQ_MAIL_AUTH_CODE: ${{ secrets.QQ_MAIL_AUTH_CODE }}
+          QQ_MAIL_FROM: 869357594@qq.com
+          QQ_MAIL_TO: 869357594@qq.com
+        run: |
+          bash .github/notify_fail.sh "update-data 跑挂" "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+  # === 每天 22:00 UTC: 跑策略 + 发邮件 ===
+  run-strategy:
+    needs: update-data
+    if: github.event.schedule == '0 22 * * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install CJK font
+        run: sudo apt-get install -y fonts-noto-cjk fontconfig
+      - name: Install Python deps
+        run: pip install --quiet requests pandas numpy reportlab matplotlib
+      - name: Run strategy + email report
+        env:
+          ALPACA_API_KEY:    ${{ secrets.ALPACA_API_KEY }}
+          ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+          ALPACA_ENDPOINT:   https://paper-api.alpaca.markets
+          QQ_MAIL_AUTH_CODE: ${{ secrets.QQ_MAIL_AUTH_CODE }}
+          QQ_MAIL_FROM:      869357594@qq.com
+          QQ_MAIL_TO:        869357594@qq.com
+          STOCK_DATA_DIR:    ${{ github.workspace }}/data
+          ETFS_REF_FILE:     ${{ github.workspace }}/data/etf-ref.csv
+          PAPER_TARGET_EQUITY: "20000"
+        run: python auto_run.py
+      - name: Notify failure (WeChat + email)
+        if: failure()
+        env:
+          WECHAT_SEND_KEY: ${{ secrets.WECHAT_SEND_KEY }}
+          QQ_MAIL_AUTH_CODE: ${{ secrets.QQ_MAIL_AUTH_CODE }}
+          QQ_MAIL_FROM: 869357594@qq.com
+          QQ_MAIL_TO: 869357594@qq.com
+        run: |
+          bash .github/notify_fail.sh "run-strategy 跑挂" "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

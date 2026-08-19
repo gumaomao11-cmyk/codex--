@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
+import os
 """Generate current top-10 holdings (aggressive momentum) + strategy spec numbers."""
 from pathlib import Path
 import numpy as np, pandas as pd
-DATA=Path(r"F:\even-codex\us-stock-data"); OUT=Path(r"F:\even-codex\lianghua2\backtest_output")
+DATA=Path(os.environ.get("STOCK_DATA_DIR") or r"F:\even-codex\us-stock-data"); OUT=Path(r"F:\even-codex\lianghua2\backtest_output")
 stk=pd.read_csv(DATA/"prices.csv",index_col=0,parse_dates=True).sort_index().apply(pd.to_numeric,errors="coerce")
 stk_full=stk.loc[:, stk.count()>=2400]
 def ml(x): return x.resample("ME").last()
