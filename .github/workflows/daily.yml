@@ -18,6 +18,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -37,10 +39,13 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # 同步到远程（防 race condition：远程可能已经领先）
+          git fetch origin main
+          git reset --hard origin/main
           git add data/
           if ! git diff --staged --quiet; then
             git commit -m "chore(data): auto-update $(date -u +%Y-%m-%d)"
-            git push
+            git push origin HEAD:main
           else
             echo "no data changes"
           fi
@@ -61,6 +66,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
