@@ -5,11 +5,11 @@ from pathlib import Path
 from datetime import date
 import requests, pandas as pd, numpy as np
 
-WS        = Path(r"F:\even-codex\lianghua2")
-OUT       = WS / "backtest_output"
-LOG       = OUT / "paper_log.csv"
-STATE     = OUT / "paper_state.json"
-TARGET    = OUT / "current_holdings_6m_skip1_top10.csv"
+from _paths import WS, OUT as _OUT, LOG as _LOG
+OUT = _OUT
+LOG = _OUT / "paper_log.csv"
+STATE = _OUT / "paper_state.json"
+TARGET = _OUT / "current_holdings_6m_skip1_top10.csv"
 SPY_FILE  = Path(os.environ.get("ETFS_REF_FILE") or r"F:\even-codex\panda\backtest\prices_2016.csv")
 TARGET_EQ = float(os.environ.get("PAPER_TARGET_EQUITY", "20000"))
 

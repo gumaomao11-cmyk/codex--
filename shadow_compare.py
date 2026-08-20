@@ -6,7 +6,7 @@ from pathlib import Path
 from datetime import datetime
 import numpy as np, pandas as pd
 DATA=Path(os.environ.get("STOCK_DATA_DIR") or r"F:\even-codex\us-stock-data"); IDX=Path(os.environ.get("ETFS_REF_FILE") or r"F:\even-codex\panda\backtest\prices_2016.csv")
-OUT=Path(r"F:\even-codex\lianghua2\backtest_output")
+from _paths import OUT
 LOG=OUT/"paper_log.csv"; STATE=OUT/"paper_state.json"
 DAYS=252; START=20000.0
 stk=pd.read_csv(DATA/"prices.csv",index_col=0,parse_dates=True).sort_index().apply(pd.to_numeric,errors="coerce").loc[:,lambda d:d.count()>=2400]
