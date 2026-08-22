@@ -182,3 +182,21 @@ git push origin main
 | 微信告警频率 | < 2 次/月 | > 5 次/月（说明经常跑挂） |
 
 3 个月期满 → `backtest_output/3m_review.md` 写评估报告 → 决定保留 / 切换 / 切真钱。
+---
+
+## 🧭 止盈止损执行（碎股账户）
+
+Alpaca Paper 的碎股订单不支持 GTC/Stop/OCO，所以对这个 2 万美金碎股账户采用**软件级止盈止损**：每天收盘后由 GitHub Actions 检查一次，触发就在 paper 里市价卖出。
+
+常用命令（本地手动跑）：
+
+| 操作 | 命令 |
+|---|---|
+| 看会不会触发（dry-run） | `python manage_orders.py --tpsl` |
+| 立即执行一次 | `python manage_orders.py --tpsl --execute` |
+| 看持仓和挂单 | `python manage_orders.py --status` |
+| 组合级清仓线检查 | `python manage_orders.py --portfolio [--execute]` |
+
+参数可通过 `--tp 0.20 --sl 0.30 --liq 0.25` 改（默认 止盈 +20% / 止损 -30% / 组合 -25% 清仓）。
+
+> 云端每日 `auto_run.py` 已经自动接入了 `--tpsl --execute`；每个交易日收盘后跑，触发记录写到 `backtest_output/tpsl_log.csv` 并会回推到 GitHub。
