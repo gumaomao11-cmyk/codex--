@@ -68,7 +68,7 @@ jobs:
           git reset --hard origin/main
           git stash pop 2>/dev/null || true
           git add data/ || true
-          git add backtest_output/paper_state.json backtest_output/paper_log.csv || true
+          git add backtest_output/paper_state.json backtest_output/paper_log.csv backtest_output/tpsl_log.csv || true
           git add backtest_output/current_holdings_6m_skip1_top10.csv 2>/dev/null || true
           git add backtest_output/weekly_report_*.pdf 2>/dev/null || true
           if ! git diff --staged --quiet; then

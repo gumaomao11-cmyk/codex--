@@ -61,6 +61,11 @@ def main():
     out, code = run("paper", WS / "paper_tracker.py")
     add("【每日 paper 日报】", out)
 
+    # === 交易日（美股收盘后）：软件级止盈止损 ===
+    if today.weekday() < 5:
+        out_tp, _ = run("tpsl", WS / "manage_orders.py", "--tpsl", "--execute")
+        add("【止盈止损（自动执行，兼容碎股）】", out_tp)
+
     # === 周末：shadow_compare ===
     if is_sunday():
         out, _ = run("shadow", WS / "shadow_compare.py")
