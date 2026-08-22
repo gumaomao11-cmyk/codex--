@@ -71,6 +71,7 @@ print()
 vm=mvol(stk,60)
 configs=[
     ("6m skip1 top10  (paper)", mom(stk,6,1), 10, 10, None),
+    ("6m skip1 top10 月频+vol25", mom(stk,6,1), 10, 10, 0.25),
     ("6m skip1 top10  (周频)", weekly_scores(stk,6,1), 10, 10, None),
     ("6m skip1 top10 周频+vol25", weekly_scores(stk,6,1), 10, 10, 0.25),
     ("6m skip1 top15", mom(stk,6,1), 15, 10, None),
