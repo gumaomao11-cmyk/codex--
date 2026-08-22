@@ -70,6 +70,8 @@ def main():
     if is_sunday():
         out, _ = run("shadow", WS / "shadow_compare.py")
         add("【每周影子策略对比】", out)
+        wout, _ = run("weekly_strategy", WS / "weekly_strategy.py")
+        add("【周频动量策略（影子，和月频同时跑）】", wout)
 
     # === 月末：调仓 ===
     auto_exe = os.environ.get("ALPACA_AUTO_EXECUTE") == "1"
@@ -133,6 +135,8 @@ def main():
     if is_last_business_day():
         bmd = OUT / "current_backtest_report.md"
         if bmd.exists(): attachments.append(bmd)
+    wf = OUT / "current_holdings_6m_skip1_top10_weekly.csv"
+    if wf.exists(): attachments.append(wf)
     # 周日附加 PDF 周报
     if is_sunday():
         pdf = OUT / f"weekly_report_{today.strftime('%Y%m%d')}.pdf"

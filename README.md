@@ -212,3 +212,10 @@ python plan_rebalance.py --csv backtest_output/current_holdings_6m_skip1_top10_d
 ```
 - 只出方案，不下单；月末邮件里会自动附上「下轮调仓建议：板块分散版 top10」。
 - 当前（2026-08）分散版：3 半导体族 + 3 能源 + 2 消费 + 2 医疗。
+
+## 🗓 周频动量策略（影子，和月频同时跑）
+
+- 信号：6 个月动量、跳过最近 1 个月（日线近似），每周最后一个交易日打分，次周建 top10 等权。
+- 生成当前周频持仓：`python weekly_strategy.py` → `backtest_output/current_holdings_6m_skip1_top10_weekly.csv` + 周频回测指标 `weekly_backtest_metrics.csv`。
+- 每周日 `auto_run.py` 会同时跑：月/周频影子对比（`shadow_compare.py`）+ 刷新周频持仓清单。
+- 最新（2026-08-21 信号）全期夏普约 1.35、样本外约 1.23；**只做影子对照，不接管主配置**。

@@ -14,6 +14,13 @@ spy=pd.read_csv(IDX,index_col=0,parse_dates=True)['SPY']
 def ml(x): return x.resample("ME").last()
 def mom(px,p,k): m=ml(px); return m.shift(k)/m.shift(p+k)-1
 def mvol(px,l=60): d=px.pct_change(); return (d.rolling(l).std()*np.sqrt(DAYS)).resample("ME").last()
+def weekly_scores(px, p=6, k=1):
+    """周频 6m-skip1 动量近似：每周最后一个交易日的日线动量(每周换仓)。"""
+    span_p=p*21; span_k=k*21
+    mom = px.div(px.shift(span_p+span_k)).sub(1.0)
+    s = pd.Series(np.arange(len(px)), index=px.index)
+    last = s.groupby(px.index.to_period("W")).last().values.astype(int)
+    return mom.iloc[last]
 def run_fast(px,scores,top,cost_bps,vol_m=None,vol_target=None):
     cols=list(px.columns); M=len(cols); dr=px.pct_change().fillna(0.0)
     me=np.array(pd.DatetimeIndex(scores.index)); day=np.array(px.index)
@@ -64,6 +71,7 @@ print()
 vm=mvol(stk,60)
 configs=[
     ("6m skip1 top10  (paper)", mom(stk,6,1), 10, 10, None),
+    ("6m skip1 top10  (周频)", weekly_scores(stk,6,1), 10, 10, None),
     ("6m skip1 top15", mom(stk,6,1), 15, 10, None),
     ("6m skip1 top20  (稳健)", mom(stk,6,1), 20, 10, None),
     ("3m skip1 top10", mom(stk,3,1), 10, 10, None),
