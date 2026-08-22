@@ -197,6 +197,18 @@ Alpaca Paper 的碎股订单不支持 GTC/Stop/OCO，所以对这个 2 万美金
 | 看持仓和挂单 | `python manage_orders.py --status` |
 | 组合级清仓线检查 | `python manage_orders.py --portfolio [--execute]` |
 
-参数可通过 `--tp 0.20 --sl 0.30 --liq 0.25` 改（默认 止盈 +20% / 止损 -30% / 组合 -25% 清仓）。
+参数可通过 `--tp 0 --sl 0.30 --warn 0.20 --liq 0.25` 改（**默认：关闭止盈、只留 -30% 止损**；组合 -20% 预警、-25% 清仓）。
 
-> 云端每日 `auto_run.py` 已经自动接入了 `--tpsl --execute`；每个交易日收盘后跑，触发记录写到 `backtest_output/tpsl_log.csv` 并会回推到 GitHub。
+> 依据回测（见 `backtest_output/tpsl_takeaway.md`）：+20% 止盈会砍掉动量主升浪，默认已关闭；止损只做极端保护；回撤管控主要靠组合级 -20% 预警 / -25% 清仓。
+
+> 云端每日 `auto_run.py` 已自动接入 `--tpsl --execute --tp 0 --sl 0.30`；每个交易日收盘后跑，触发记录写到 `backtest_output/tpsl_log.csv` 并回推 GitHub。
+
+## 🌐 板块分散版 top10（下轮调仓建议）
+数据里没有官方行业标签，用近 2 年日收益率相关性聚类当成“板块族”（半导体/AI 会聚成一簇），选股时每簇最多 3 只，防止 10 只全梭哈同一板块。
+
+```bash
+python diversified_holdings.py                      # 生成 current_holdings_6m_skip1_top10_div.csv
+python plan_rebalance.py --csv backtest_output/current_holdings_6m_skip1_top10_div.csv --budget 20000 --out backtest_output/rebalance_plan_YYYYMMDD_div.csv
+```
+- 只出方案，不下单；月末邮件里会自动附上「下轮调仓建议：板块分散版 top10」。
+- 当前（2026-08）分散版：3 半导体族 + 3 能源 + 2 消费 + 2 医疗。

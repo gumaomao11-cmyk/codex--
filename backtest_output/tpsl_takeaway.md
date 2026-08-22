@@ -35,3 +35,9 @@
 ## 5. 生成文件
 - `tpsl_backtest_compare.py`：可复现脚本
 - `tpsl_backtest_compare.csv`：完整指标表
+
+## 6. 已落地调整（2026-08-22）
+- `manage_orders.py` 默认改为 **关闭止盈、只留 -30% 止损**（`--tp 0 --sl 0.30`）。
+- 每日 `auto_run.py` 云端跑的是 **只止损**，不截断动量利润。
+- 新增组合级管控：NAV 相对 2 万起 -20% 预警、-25% 自动清仓；已接入每日 tpsl 输出。
+- 新增 `diversified_holdings.py`：近 2 年相关性聚类代理行业，选股每簇最多 3 只，输出 `current_holdings_6m_skip1_top10_div.csv`（避免 10 只全半导体），只出方案不下单，下轮月末可执行。

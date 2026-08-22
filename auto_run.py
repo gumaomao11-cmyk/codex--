@@ -63,7 +63,7 @@ def main():
 
     # === 交易日（美股收盘后）：软件级止盈止损 ===
     if today.weekday() < 5:
-        out_tp, _ = run("tpsl", WS / "manage_orders.py", "--tpsl", "--execute")
+        out_tp, _ = run("tpsl", WS / "manage_orders.py", "--tpsl", "--execute", "--tp", "0", "--sl", "0.30")
         add("【止盈止损（自动执行，兼容碎股）】", out_tp)
 
     # === 周末：shadow_compare ===
@@ -76,6 +76,16 @@ def main():
     if is_last_business_day():
         out, _ = run("holdings", WS / "current_holdings.py")
         add("【月末新持仓清单】", out)
+        # 关键解读：板块分散版 top10（相关性聚类，最多3只/板块）——只出方案，不自动下单
+        try:
+            dout, _ = run("diversified_holdings", WS / "diversified_holdings.py")
+            add("【下轮调仓建议：板块分散版 top10（相关性聚类版，max 3/板块）】", dout)
+            dplan = OUT / "rebalance_plan_20260822_div.csv"
+            dplan = OUT / f"rebalance_plan_{date.today():%Y%m%d}_div.csv"
+            pout2, _ = run("plan_div", WS / "plan_rebalance.py", "--csv", str(OUT / "current_holdings_6m_skip1_top10_div.csv"), "--budget", "20000", "--out", str(dplan))
+            add("【板块分散版分批限价执行计划】", pout2)
+        except Exception as e:
+            add("【板块分散版 top10】", f"生成失败: {e}")
         if auto_exe:
             out2, _ = run("rebalance_exec", WS / "alpaca_buy.py", "--rebalance", "--execute")
             add("【月末调仓（已自动执行）】", out2)

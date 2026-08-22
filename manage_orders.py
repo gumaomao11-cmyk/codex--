@@ -122,7 +122,7 @@ def portfolio(dry, liq_pct):
     else:
         print(f"  未触及清仓线,继续持有。")
 
-def tpsl(dry, tp_pct, sl_pct):
+def tpsl(dry, tp_pct, sl_pct, warn_pct=0.20, liq_pct=0.25):
     """软件级止盈止损：每日检查现价，触发即市价卖出（兼容碎股，碎股不支持OCO/GTC）。
     参数填 0/正数都按 0 处理->关闭该项。默认 dry-run；--execute 才真实卖出。"""
     import pandas as pd
@@ -153,6 +153,34 @@ def tpsl(dry, tp_pct, sl_pct):
                 rows.append({"date": today, "symbol": sym, "action": action,
                              "avg": round(avg,2), "exit_price": round(cur,2), "qty": round(qty,4)})
                 triggered += 1
+    # ---- 组合级 NAV 预警 / 清仓（按关键解读：组合级管控回撤，不由单只止损承担）----
+    start = float(os.environ.get("PAPER_TARGET_EQUITY", "20000"))
+    pos2 = get("/v2/positions")
+    nav = sum(float(x["market_value"]) for x in pos2)
+    dd = nav / start - 1.0
+    warn_lvl = start * (1 - warn_pct if warn_pct and warn_pct > 0 else 0)
+    liq_lvl  = start * (1 - liq_pct  if liq_pct  and liq_pct  > 0 else 0)
+    print(f"组合NAV=${nav:,.2f}  相对起始 -{dd*-1*100:.1f}%  预警线=${warn_lvl:,.0f}(-{warn_pct*100:.0f}%)  清仓线=${liq_lvl:,.0f}(-{liq_pct*100:.0f}%)")
+    if nav <= warn_lvl:
+        print(f"  ⚠ 已达组合预警线 ({dd*100:.1f}%)，建议降仓/暂停追高；")
+    if nav <= liq_lvl:
+        print(f"  !! 已达组合清仓线 ({dd*100:.1f}%)，触发全清仓")
+        if not dry:
+            sold = 0
+            for x in pos2:
+                sym = x["symbol"]; qty = float(x["qty"])
+                if qty <= 0: continue
+                body = {"symbol": sym, "qty": str(round(qty, 4)), "side": "sell",
+                        "type": "market", "time_in_force": "day"}
+                r = post("/v2/orders", body)
+                print(f"      -> 清仓 {sym} qty={qty:.3f}  {r.status_code} {r.text[:120]}")
+                sold += 1
+            print(f"  已提交清仓 {sold} 笔")
+        else:
+            print("  [dry-run] 加 --execute 才真正清仓")
+    else:
+        print(f"  组合未触清仓线，继续执行个股止盈/止损。")
+
     if not dry:
         if rows:
             log = OUT / "tpsl_log.csv"
@@ -161,11 +189,11 @@ def tpsl(dry, tp_pct, sl_pct):
                 old = pd.read_csv(log)
                 new = pd.concat([old, new], ignore_index=True)
             new.to_csv(log, index=False, encoding="utf-8-sig")
-            print(f"  今日触发 {triggered} 笔, 已追加日志: {log}")
+            print(f"  今日个股触发 {triggered} 笔, 已追加日志: {log}")
         else:
-            print("  今日无触发，保持不变。")
+            print("  今日个股无触发，保持不变。")
     else:
-        print("  以上为预计动作；加 --execute 才会真实卖出。")
+        print("  以上为预计动作；加 --execute 才会真实执行。")
 
 def status():
     print("== 持仓 ==")
@@ -183,8 +211,9 @@ def main():
     ap.add_argument("--portfolio", action="store_true")
     ap.add_argument("--tpsl", action="store_true")
     ap.add_argument("--execute", action="store_true")
-    ap.add_argument("--tp", type=float, default=0.20)
-    ap.add_argument("--sl", type=float, default=0.30)
+    ap.add_argument("--tp", type=float, default=0.0)   # 关键解读：止盈截断动量收益，默认关闭
+    ap.add_argument("--sl", type=float, default=0.30)  # 止损保留做极端保护
+    ap.add_argument("--warn", type=float, default=0.20)
     ap.add_argument("--liq", type=float, default=0.25)
     ap.add_argument("--watch", default=None)
     a = ap.parse_args()
@@ -193,7 +222,7 @@ def main():
     elif a.protect: protect(dry, a.tp, a.sl, a.watch)
     elif a.entry: entry(a.entry, dry)
     elif a.portfolio: portfolio(dry, a.liq)
-    elif a.tpsl: tpsl(dry, a.tp, a.sl)
+    elif a.tpsl: tpsl(dry, a.tp, a.sl, a.warn, a.liq)
     else: ap.print_help()
 
 if __name__ == "__main__":

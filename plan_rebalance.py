@@ -42,6 +42,7 @@ def main():
     ap.add_argument("--high-win", type=int, default=60)
     ap.add_argument("--chase-th", type=float, default=0.97)
     ap.add_argument("--budget", type=float, default=20000.0)
+    ap.add_argument("--out", default=None)
     a = ap.parse_args()
 
     holdings = Path(a.csv) if a.csv else next(OUT.glob("current_holdings_*.csv"))
@@ -93,7 +94,7 @@ def main():
         print(f"{t:<6}{px:>9.2f}{hi:>9.2f}{dist*100:>6.1f}%  2日{r2*100:>+5.1f}% {note:<20} 末批:{plan[-1][3]}")
     print("-"*84)
     print("执行: 每日挂1批限价单; 未成交撤单次日重挂; 回落>=5%可提前买下一批; 冲高/接近高点的批次自动降仓或留现金。")
-    out_csv = OUT / f"rebalance_plan_{today:%Y%m%d}.csv"
+    out_csv = Path(a.out) if a.out else OUT / f"rebalance_plan_{today:%Y%m%d}.csv"
     pd.DataFrame(plan, columns=["ticker","batch","date","action","limit_price","notional"]).to_csv(out_csv, index=False, encoding="utf-8-sig")
     print(f"\n计划已保存: {out_csv}")
 
