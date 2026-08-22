@@ -152,6 +152,13 @@ print(f"  策略               : {ret_total*100:+7.2f}%")
 print(f"  SPY                : {ret_spy*100:+7.2f}%   alpha vs SPY  {alpha_spy*100:+6.2f}%")
 print(f"  QQQ                : {ret_qqq*100:+7.2f}%   alpha vs QQQ  {alpha_qqq*100:+6.2f}%")
 print()
+print("【影子策略对比】(自 paper 起始日, 仅供对比, 非实际持仓)")
+try:
+    import shadow_report
+    print(shadow_report.build(start=state["start_date"]))
+except Exception as e:
+    print("  (影子对比暂不可用: %s)" % e)
+print()
 print("【滚动指标】")
 def _fmt(x, kind="pct"):
     if x is None: return "  (数据不足)"
