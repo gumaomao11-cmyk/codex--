@@ -124,10 +124,12 @@ def portfolio(dry, liq_pct):
 
 def tpsl(dry, tp_pct, sl_pct):
     """软件级止盈止损：每日检查现价，触发即市价卖出（兼容碎股，碎股不支持OCO/GTC）。
-    默认 dry-run；--execute 才真实卖出。"""
+    参数填 0/正数都按 0 处理->关闭该项。默认 dry-run；--execute 才真实卖出。"""
     import pandas as pd
     today = datetime.date.today().isoformat()
-    print(f"止盈/止损监控: 止盈+{tp_pct*100:.0f}%  止损-{sl_pct*100:.0f}%  (dry-run={dry})  日期={today}")
+    tp_on = tp_pct is not None and tp_pct > 0
+    sl_on = sl_pct is not None and sl_pct > 0
+    print(f"止盈/止损监控: 止盈+{tp_pct*100 if tp_on else 0:.0f}%  止损-{sl_pct*100 if sl_on else 0:.0f}%  (dry-run={dry})  日期={today}")
     pos = get("/v2/positions")
     rows, triggered = [], 0
     for p in pos:
@@ -138,8 +140,9 @@ def tpsl(dry, tp_pct, sl_pct):
             continue
         if qty <= 0 or avg <= 0 or cur <= 0:
             print(f"  {sym:<6} 跳过(无有效价格)"); continue
-        tp = avg * (1 + tp_pct); sl = avg * (1 - sl_pct)
-        action = "SELL_STOP" if cur <= sl else ("SELL_TP" if cur >= tp else None)
+        tp = avg * (1 + tp_pct) if tp_on else float("inf")
+        sl = avg * (1 - sl_pct) if sl_on else 0.0
+        action = "SELL_STOP" if sl_on and cur <= sl else ("SELL_TP" if tp_on and cur >= tp else None)
         print(f"  {sym:<6} 均价={avg:9.2f} 现价={cur:9.2f} 止盈={tp:9.2f} 止损={sl:9.2f}  {action or '持有'}")
         if action and not dry:
             body = {"symbol": sym, "qty": str(round(qty, 4)), "side": "sell",
