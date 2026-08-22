@@ -34,9 +34,23 @@ if not (KEY and SEC):
     print("ERROR: 未找到 Alpaca 凭据。"); sys.exit(1)
 hdr = {"APCA-API-KEY-ID": KEY, "APCA-API-SECRET-KEY": SEC}
 
-# ----- 拉账户与持仓 -----
-acc = requests.get(f"{EP}/v2/account", headers=hdr, timeout=15).json()
-pos = requests.get(f"{EP}/v2/positions", headers=hdr, timeout=15).json()
+# ----- 拉账户与持仓（对 Alpaca 异常做防护：返回 503/错误时不 KeyError） -----
+_acc_r = requests.get(f"{EP}/v2/account", headers=hdr, timeout=15)
+try:
+    acc = _acc_r.json()
+except Exception:
+    acc = {"raw": _acc_r.text[:300]}
+if not (isinstance(acc, dict) and "equity" in acc and "cash" in acc):
+    print(f"ERROR: Alpaca 账户接口返回异常 (HTTP {_acc_r.status_code}): {str(acc)[:300]}")
+    sys.exit(1)
+_pos_r = requests.get(f"{EP}/v2/positions", headers=hdr, timeout=15)
+try:
+    pos = _pos_r.json()
+except Exception:
+    pos = {"raw": _pos_r.text[:300]}
+if not isinstance(pos, list):
+    print(f"ERROR: Alpaca 持仓接口返回异常 (HTTP {_pos_r.status_code}): {str(pos)[:300]}")
+    sys.exit(1)
 total_equity = float(acc['equity']); cash = float(acc['cash'])
 
 # ----- 目标清单（只跟踪这些） -----
