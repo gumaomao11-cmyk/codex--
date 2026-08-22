@@ -102,7 +102,7 @@ def main():
                 sections[-1][1] + "\n\n> 若要本月自动执行：把环境变量 ALPACA_AUTO_EXECUTE=1 设上后重跑一次。")
             # 分批限价执行计划（避开买在局部高点）
             try:
-                pout, _ = run("plan", WS / "plan_rebalance.py", "--csv", str(OUT / "current_holdings_6m_skip1_top10.csv"))
+                pout, _ = run("plan", WS / "plan_rebalance.py", "--csv", str(OUT / "current_holdings_6m_skip1_accel_top10.csv"))
                 add("【分批限价执行计划（按SOP执行，防追高）】", pout)
             except Exception as e:
                 add("【分批限价执行计划】", f"生成失败: {e}")
@@ -128,7 +128,7 @@ def main():
 
     # 附件
     attachments = []
-    cand = OUT / "current_holdings_6m_skip1_top10.csv"
+    cand = OUT / "current_holdings_6m_skip1_accel_top10.csv"
     if cand.exists(): attachments.append(cand)
     log_csv = OUT / "paper_log.csv"
     if log_csv.exists(): attachments.append(log_csv)

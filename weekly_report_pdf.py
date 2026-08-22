@@ -176,7 +176,7 @@ story.append(t2)
 story.append(Spacer(1, 10))
 
 # 持仓清单
-target_csv = OUT / "current_holdings_6m_skip1_top10.csv"
+target_csv = OUT / "current_holdings_6m_skip1_accel_top10.csv"
 if target_csv.exists():
     story.append(PageBreak())
     story.append(Paragraph("当前持仓清单（top10）", h2))

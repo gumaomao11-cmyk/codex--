@@ -12,7 +12,7 @@ import requests
 import pandas as pd
 
 from _paths import OUT
-CSV = str(OUT / "current_holdings_6m_skip1_top10.csv")
+CSV = str(OUT / "current_holdings_6m_skip1_accel_top10.csv")
 PER = 2000.0
 DRY = "--execute" not in sys.argv
 REBAL = "--rebalance" in sys.argv

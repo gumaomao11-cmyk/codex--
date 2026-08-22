@@ -1,3 +1,9 @@
+import sys
+if hasattr(sys.stdout, "reconfigure"):
+    try: sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception: pass
+    try: sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception: pass
 # -*- coding: utf-8 -*-
 """每日 paper 账户报告：只跟踪策略 10 只持仓，用 $20,000 当基准，附详细指标。"""
 import os, sys, json
@@ -9,7 +15,7 @@ from _paths import WS, OUT as _OUT, LOG as _LOG
 OUT = _OUT
 LOG = _OUT / "paper_log.csv"
 STATE = _OUT / "paper_state.json"
-TARGET = _OUT / "current_holdings_6m_skip1_top10.csv"
+TARGET = _OUT / "current_holdings_6m_skip1_accel_top10.csv"
 SPY_FILE  = Path(os.environ.get("ETFS_REF_FILE") or r"F:\even-codex\panda\backtest\prices_2016.csv")
 TARGET_EQ = float(os.environ.get("PAPER_TARGET_EQUITY", "20000"))
 
