@@ -181,3 +181,25 @@ else:
     print(f"  ✓ 节奏正常, 继续按月频调仓")
 print()
 print(f"日志: {LOG}")
+
+# ----- 卫星仓(机会仓,单独标记,不进核心回测) -----
+sat_set = set(); sat_budget = 0.0
+if (OUT / "satellite_targets.json").exists():
+    try:
+        _s = json.loads((OUT / "satellite_targets.json").read_text(encoding="utf-8"))
+        sat_set = set(_s.get("tickers", [])); sat_budget = float(_s.get("budget", 0.0))
+    except Exception:
+        sat_set = set()
+satellite_pos = [pp for pp in pos if pp["symbol"] in sat_set and pp["symbol"] not in target_set]
+sat_nav = sum(float(pp["market_value"]) for pp in satellite_pos)
+sat_pnl = sat_nav - sat_budget
+print(); print(f"【卫星仓 (实验机会仓, 单独标记, 不计入策略回测)】")
+if sat_set:
+    print(f"  卫星预算 : ${sat_budget:,.2f}  (≤主仓15%)")
+    print(f"  卫星市值 : ${sat_nav:,.2f}   浮动 {sat_pnl:+,.2f} ({sat_pnl/sat_budget*100 if sat_budget else 0:+.2f}%)")
+    for q in satellite_pos:
+            sym_q = q["symbol"]; mv_q = float(q["market_value"]); up_q = float(q.get("unrealized_plpc", 0)) * 100
+            print(f"    {sym_q:<6} ${mv_q:>9,.2f}  浮盈 {up_q:+.2f}%")
+else:
+    print("  无卫星仓(尚未配置)")
+

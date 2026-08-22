@@ -63,3 +63,19 @@ python plan_rebalance.py --csv backtest_output\current_holdings_6m_skip1_top10.c
 - 但实际成交走了 `alpaca_buy.py` 的 **market order**，等到 08-17 才买，价格已经冲到波段顶
 - 结果：份额还是按 07-31 算的 $2,000，但成本价是 08-17 高点 → 一回调就全亏
 - **修复**：以后用最新价生成计划 + 分批限价，不要再跨多天市价追高
+## 六、主干 + 卫星（机会仓）分层
+
+- **主干仓**：月频 top10，4 批 × 5 个交易日限价入场（见上），占预算 ~85%
+- **卫星仓（机会仓）**：对近期爆发但未进 top10 的标的（如某医药股）做 ≤15% 试探仓
+
+### 卫星仓用法
+```powershell
+python satellite_plan.py --tickers "MRNA" --budget 3000
+```
+- 输出 `satellite_plan_YYYYMMDD.csv` + 记录 `satellite_targets.json`
+- paper_tracker 每日会把卫星仓**单独列一段**（不计入核心策略回测）
+- 触发规则同主干：接近 60 日高点先等回踩，分 2 批限价买
+
+### 仓位上限
+- 主干 85% + 卫星 ≤15%，卫星总敞口不许超过预算 15%（默认 3000/20000）
+- 卫星仓亏损**单独看**，不影响主干策略评估
