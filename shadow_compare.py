@@ -21,6 +21,22 @@ def weekly_scores(px, p=6, k=1):
     s = pd.Series(np.arange(len(px)), index=px.index)
     last = s.groupby(px.index.to_period("W")).last().values.astype(int)
     return mom.iloc[last]
+
+def accel_scores(px, p=6, k=1, am=1, wm=0.5):
+    """月频复合：wm*动量 + (1-wm)*近 am 个月收益"""
+    m = mom(px, p, k)
+    a = ml(px).pct_change(am)
+    return wm*m + (1-wm)*a
+
+def weekly_accel_scores(px, p=6, k=1, am=1, wm=0.5):
+    """周频复合：wm*动量 + (1-wm)*近 am 个月日线收益"""
+    span_p=p*21; span_k=k*21; span_a=am*21
+    momw = px.div(px.shift(span_p+span_k)).add(-1.0)
+    accw = px.div(px.shift(span_a)).add(-1.0)
+    sc = wm*momw + (1-wm)*accw
+    s = pd.Series(np.arange(len(px)), index=px.index)
+    last = s.groupby(px.index.to_period("W")).last().values.astype(int)
+    return sc.iloc[last]
 def run_fast(px,scores,top,cost_bps,vol_m=None,vol_target=None):
     cols=list(px.columns); M=len(cols); dr=px.pct_change().fillna(0.0)
     me=np.array(pd.DatetimeIndex(scores.index)); day=np.array(px.index)
@@ -79,6 +95,10 @@ configs=[
     ("3m skip1 top10", mom(stk,3,1), 10, 10, None),
     ("9m top10", mom(stk,9,0), 10, 10, None),
     ("6m skip1 top10 + vol25", mom(stk,6,1), 10, 10, 0.25),
+    ("6m accel top10 月频", accel_scores(stk,6,1), 10, 10, None),
+    ("6m accel top10 月频+vol25", accel_scores(stk,6,1), 10, 10, 0.25),
+    ("6m accel top10 周频", weekly_accel_scores(stk,6,1), 10, 10, None),
+    ("6m accel top10 周频+vol25", weekly_accel_scores(stk,6,1), 10, 10, 0.25),
 ]
 rows=[("SPY (reference)",)*3+("(ref)",)*2]
 for name,sc,top,cost,vt in configs:

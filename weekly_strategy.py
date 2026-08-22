@@ -22,6 +22,12 @@ def mom_score(d):  # 日线近似 6m-skip1
     a = px.iloc[d-21]; b = px.iloc[d-147]
     return (a/b - 1.0).replace([np.inf, -np.inf], np.nan)
 
+def acc_score(d):  # 6m-skip1 动量 + 近1月加速（各占50%）
+    m = mom_score(d)
+    if m is None: return None
+    a = px.iloc[d] / px.iloc[d-21] - 1.0
+    return (0.5*m + 0.5*a).replace([np.inf, -np.inf], np.nan)
+
 def weekly_last_days():
     s = pd.Series(idx, index=idx.to_period("W"))
     last = s.groupby(level=0).last()
@@ -48,13 +54,34 @@ print(f"周频动量策略 top{TOP}  信号={pd.Timestamp(sig_date).date()}  数
 print(hold[["rank","ticker","momentum","price","alloc_usd","shares"]].round(4).to_string(index=False))
 print("saved:", hold_csv)
 
+# ---------- 当前周频持仓（动量+近1月加速） ----------
+sig_a = max(wk_days)
+sca = acc_score(sig_a)
+ta_a = list(sca.sort_values(ascending=False).index[:TOP])
+rows_a = []
+for rk_a, t_a in enumerate(ta_a, 1):
+    price_a = float(px.iloc[-1][t_a]); alloc_a = CAPITAL / TOP
+    mom_v = float(mom_score(sig_a)[t_a])
+    acc_v = float(px.iloc[sig_a][t_a] / px.iloc[sig_a-21][t_a] - 1.0)
+    rows_a.append(dict(rank=rk_a, ticker=t_a, signal_date=str(pd.Timestamp(idx[sig_a]).date()),
+                       momentum=round(mom_v,4), accel=round(acc_v,4),
+                       score=round(mom_v*0.5 + acc_v*0.5,4), weight=1.0/TOP,
+                       price=price_a, alloc_usd=alloc_a, shares=alloc_a/price_a))
+hold_a = pd.DataFrame(rows_a)
+hold_a_csv = OUT / "current_holdings_6m_skip1_accel_top10_weekly.csv"
+hold_a.to_csv(hold_a_csv, index=False, encoding="utf-8-sig")
+print("="*80)
+print(f"周频动量+加速策略 top{TOP}  信号={pd.Timestamp(idx[sig_a]).date()}  数据截止={idx[-1].date()}")
+print(hold_a[["rank","ticker","momentum","accel","score","price","alloc_usd","shares"]].round(4).to_string(index=False))
+print("saved:", hold_a_csv)
+
 # ---------- 周频回测指标 ----------
-def backtest_weekly(top=TOP, cost_bps=10, vol_target=None):
+def backtest_weekly(score_func=mom_score, top=TOP, cost_bps=10, vol_target=None):
     rb = weekly_last_days()
     rb = [d for d in rb if d > 147 and d+1 < len(idx)]
     prev_w = pd.Series(0.0, index=cols); ret = pd.Series(0.0, index=idx); cost_line = pd.Series(0.0, index=idx)
     for k, rdi in enumerate(rb):
-        sc = mom_score(rdi)
+        sc = score_func(rdi)
         if sc is None or sc.dropna().empty: continue
         ta2 = list(sc.sort_values(ascending=False).index[:top]); w = 1.0/len(ta2)
         new_w = pd.Series(0.0, index=cols); new_w[ta2] = w
@@ -90,12 +117,16 @@ def metrics(ret):
 
 r = backtest_weekly(); f = metrics(r)
 r25 = backtest_weekly(vol_target=0.25); f25 = metrics(r25)
-oos = idx >= pd.Timestamp("2022-01-01"); o = metrics(r[oos]); o25 = metrics(r25[oos])
+ra = backtest_weekly(acc_score); fa = metrics(ra)
+ra25 = backtest_weekly(acc_score, vol_target=0.25); fa25 = metrics(ra25)
+oos = idx >= pd.Timestamp("2022-01-01"); o = metrics(r[oos]); o25 = metrics(r25[oos]); oa = metrics(ra[oos]); oa25 = metrics(ra25[oos])
 def line(name, mm, oo):
     return dict(策略=name, full_sh=round(mm["sharpe"],3), full_ann=round(mm["ann"],4), full_mdd=round(mm["mdd"],4), full_end=round(mm["final"],0),
                 oos_sh=round(oo["sharpe"],3), oos_ann=round(oo["ann"],4), oos_mdd=round(oo["mdd"],4), oos_end=round(oo["final"],0))
 mdf = pd.DataFrame([line("周频 6m-skip1 top10 (base)", f, o),
-                    line("周频 6m-skip1 top10 + vol25（推荐）", f25, o25)])
+                    line("周频 6m-skip1 top10 + vol25", f25, o25),
+                    line("周频 6m-skip1+近1月加速 top10", fa, oa),
+                    line("周频 6m-skip1+近1月加速 top10 + vol25", fa25, oa25)])
 mcsv = OUT / "weekly_backtest_metrics.csv"
 mdf.to_csv(mcsv, index=False, encoding="utf-8-sig")
 print("\n周频回测指标:")

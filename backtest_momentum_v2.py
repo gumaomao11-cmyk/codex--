@@ -31,6 +31,13 @@ def momentum_score(px, period, skip):
     ml = monthly_last(px)
     return ml.shift(skip) / ml.shift(skip + period) - 1.0
 
+def momentum_accel_score(px, period, skip, accel_months=1, w_mom=0.5):
+    """复合打分 = w_mom*动量 + (1-w_mom)*近1月加速"""
+    ml = monthly_last(px)
+    m = ml.shift(skip) / ml.shift(skip + period) - 1.0
+    a = ml / ml.shift(accel_months) - 1.0
+    return w_mom * m + (1.0 - w_mom) * a
+
 def sma10_filter(px, month_last):
     ma = month_last.rolling(10, min_periods=10).mean()
     return (month_last >= ma).fillna(False)
@@ -155,11 +162,16 @@ spy_m = monthly_last(etf_px[['SPY']])['SPY']
 spy10 = sma10_filter(etf_px['SPY'], spy_m)
 stk6  = momentum_score(stock_px, 6, 0)
 stk12 = momentum_score(stock_px, 12, 1)
+stk6a  = momentum_accel_score(stock_px, 6, 1, accel_months=1, w_mom=0.5)
+stk12a = momentum_accel_score(stock_px, 12, 1, accel_months=1, w_mom=0.5)
 
 S = {}
 S['StockMom6_top20']             = run(stock_px, stk6, 20, cost_bps=10)
 S['StockMom6_top20_vol25']       = run(stock_px, stk6, 20, cost_bps=10, vol_target=0.25)
 S['StockMom12-1_top10']          = run(stock_px, stk12, 10, cost_bps=10)
+S['StockMom6-1_accel_top10']     = run(stock_px, stk6a, 10, cost_bps=10)
+S['StockMom6-1_accel_top10_vol25'] = run(stock_px, stk6a, 10, cost_bps=10, vol_target=0.25)
+S['StockMom12-1_accel_top10']    = run(stock_px, stk12a, 10, cost_bps=10)
 S['ETF_Mom6_top2']               = run(etf_px, etf6, 2, cost_bps=5)
 S['ETF_Mom6_top2_vol15']         = run(etf_px, etf6, 2, cost_bps=5, vol_target=0.15)
 S['ETF_Mom6_top2_trend_cash']    = run(etf_px, etf6, 2, market_filter=spy10, cash_asset=None, cost_bps=5)
@@ -189,7 +201,7 @@ df.to_csv(OUT_DIR / "results_table.csv", index=False, encoding="utf-8-sig")
 print(df.to_string(index=False))
 
 # ---- charts
-sel_strats = ['StockMom6_top20','StockMom6_top20_vol25','ETF_Mom6_top2','ETF_Mom6_top2_vol15','ETF_Mom6_top2_trend_cash_vol12']
+sel_strats = ['StockMom6-1_accel_top10','StockMom6-1_accel_top10_vol25','StockMom6_top20_vol25','ETF_Mom6_top2','ETF_Mom6_top2_vol15']
 sel_bh = ['SPY','QQQ','SPMO','USMV']
 fig, axes = plt.subplots(2, 2, figsize=(13.5, 9), constrained_layout=True)
 ax = axes[0,0]
