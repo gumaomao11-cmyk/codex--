@@ -84,7 +84,7 @@ yr.to_csv(OUT / "current_backtest_yearly.csv", index=False, encoding="utf-8-sig"
 lines = []
 lines.append("# 当前策略回测效果复算（6m-skip1 top10 · 月度调仓）\n")
 lines.append("> 口径：与项目原回测一致。日线收盘价、单边成本10bps、月末动量信号次月生效、每只等权1/10、起步$20,000。\n")
-lines.append("> 数据：F:/even-codex/us-stock-data/prices.csv（截止 2026-08-14）。\n")
+lines.append(f"> 数据：F:/even-codex/us-stock-data/prices.csv（截止 {px.index[-1].date()}）。\n")
 lines.append(f"\n年化换手(月度平均单边换手): {turn*100:.0f}%\n")
 lines.append("\n## 收益/风险指标\n")
 lines.append(df.to_markdown(index=False))
