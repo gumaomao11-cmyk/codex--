@@ -219,3 +219,4 @@ python plan_rebalance.py --csv backtest_output/current_holdings_6m_skip1_top10_d
 - 生成当前周频持仓：`python weekly_strategy.py` → `backtest_output/current_holdings_6m_skip1_top10_weekly.csv` + 周频回测指标 `weekly_backtest_metrics.csv`。
 - 每周日 `auto_run.py` 会同时跑：月/周频影子对比（`shadow_compare.py`）+ 刷新周频持仓清单。
 - 最新（2026-08-21 信号）全期夏普约 1.35、样本外约 1.23；**只做影子对照，不接管主配置**。
+- 优化扫描（见 `backtest_output/weekly_optimize_takeaway.md`）：**周频+vol25 波动率目标**夏普更高、回撤更小（全期 ~1.38~1.44，回撤 -30%/-25%），推荐作为周频的升级配置；持仓清单仍按 top10 等权展示，执行时按目标波动缩放仓位。

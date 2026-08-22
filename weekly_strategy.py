@@ -49,7 +49,7 @@ print(hold[["rank","ticker","momentum","price","alloc_usd","shares"]].round(4).t
 print("saved:", hold_csv)
 
 # ---------- 周频回测指标 ----------
-def backtest_weekly(top=TOP, cost_bps=10):
+def backtest_weekly(top=TOP, cost_bps=10, vol_target=None):
     rb = weekly_last_days()
     rb = [d for d in rb if d > 147 and d+1 < len(idx)]
     prev_w = pd.Series(0.0, index=cols); ret = pd.Series(0.0, index=idx); cost_line = pd.Series(0.0, index=idx)
@@ -67,6 +67,17 @@ def backtest_weekly(top=TOP, cost_bps=10):
         if li:
             ret.iloc[hold_start:seg_end+1] += (dr.iloc[hold_start:seg_end+1, li] * w).sum(axis=1)
         prev_w = new_w.copy()
+    if vol_target:
+        scale = pd.Series(1.0, index=ret.index)
+        for k, rdi in enumerate(rb):
+            hs = rdi + 1
+            if hs >= len(idx): continue
+            look = ret.loc[:idx[hs]].iloc[-(61):-1].dropna()
+            if len(look) >= 21 and look.std(ddof=1) > 0:
+                sval = min(1.0, vol_target/(look.std(ddof=1)*np.sqrt(DAYS)))
+                se = rb[k+1] if k+1 < len(rb) else len(idx)-1
+                scale.iloc[hs:se+1] = sval
+        ret = ret.mul(scale)
     return (ret - cost_line).clip(lower=-0.5)
 
 def metrics(ret):
@@ -77,12 +88,14 @@ def metrics(ret):
     mdd = (nav/nav.cummax()-1).min()
     return dict(ann=ann, vol=vol, sharpe=sh, mdd=float(mdd), final=float(nav.iloc[-1]))
 
-r = backtest_weekly()
-f = metrics(r)
-oos = idx >= pd.Timestamp("2022-01-01"); o = metrics(r[oos])
-mdf = pd.DataFrame([dict(策略="周频 6m-skip1 top10  (成本10bps)",
-                          full_sh=round(f["sharpe"],3), full_ann=round(f["ann"],4), full_mdd=round(f["mdd"],4), full_end=round(f["final"],0),
-                          oos_sh=round(o["sharpe"],3), oos_ann=round(o["ann"],4), oos_mdd=round(o["mdd"],4), oos_end=round(o["final"],0))])
+r = backtest_weekly(); f = metrics(r)
+r25 = backtest_weekly(vol_target=0.25); f25 = metrics(r25)
+oos = idx >= pd.Timestamp("2022-01-01"); o = metrics(r[oos]); o25 = metrics(r25[oos])
+def line(name, mm, oo):
+    return dict(策略=name, full_sh=round(mm["sharpe"],3), full_ann=round(mm["ann"],4), full_mdd=round(mm["mdd"],4), full_end=round(mm["final"],0),
+                oos_sh=round(oo["sharpe"],3), oos_ann=round(oo["ann"],4), oos_mdd=round(oo["mdd"],4), oos_end=round(oo["final"],0))
+mdf = pd.DataFrame([line("周频 6m-skip1 top10 (base)", f, o),
+                    line("周频 6m-skip1 top10 + vol25（推荐）", f25, o25)])
 mcsv = OUT / "weekly_backtest_metrics.csv"
 mdf.to_csv(mcsv, index=False, encoding="utf-8-sig")
 print("\n周频回测指标:")
