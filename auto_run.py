@@ -76,11 +76,15 @@ def main():
     if is_last_business_day():
         out, _ = run("holdings", WS / "current_holdings.py")
         add("【月末新持仓清单】", out)
+        try:
+            bout, bcode = run("backtest_current", WS / "current_backtest_report.py")
+            add("【用最新数据复算当前策略回测】", bout)
+        except Exception as e:
+            add("【用最新数据复算当前策略回测】", f"生成失败: {e}")
         # 关键解读：板块分散版 top10（相关性聚类，最多3只/板块）——只出方案，不自动下单
         try:
             dout, _ = run("diversified_holdings", WS / "diversified_holdings.py")
             add("【下轮调仓建议：板块分散版 top10（相关性聚类版，max 3/板块）】", dout)
-            dplan = OUT / "rebalance_plan_20260822_div.csv"
             dplan = OUT / f"rebalance_plan_{date.today():%Y%m%d}_div.csv"
             pout2, _ = run("plan_div", WS / "plan_rebalance.py", "--csv", str(OUT / "current_holdings_6m_skip1_top10_div.csv"), "--budget", "20000", "--out", str(dplan))
             add("【板块分散版分批限价执行计划】", pout2)
@@ -126,6 +130,9 @@ def main():
     if cand.exists(): attachments.append(cand)
     log_csv = OUT / "paper_log.csv"
     if log_csv.exists(): attachments.append(log_csv)
+    if is_last_business_day():
+        bmd = OUT / "current_backtest_report.md"
+        if bmd.exists(): attachments.append(bmd)
     # 周日附加 PDF 周报
     if is_sunday():
         pdf = OUT / f"weekly_report_{today.strftime('%Y%m%d')}.pdf"
