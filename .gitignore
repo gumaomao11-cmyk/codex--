@@ -31,3 +31,4 @@ alpaca.env
 backtest_output/kb_*.csv
 backtest_output/kb_raw_items.json
 
+backtest_output/kb_*.json
