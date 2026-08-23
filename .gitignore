@@ -26,3 +26,8 @@ venv/
 mail.env
 alpaca.env
 
+
+# IMA knowledge base export (keep local, paid content)
+backtest_output/kb_*.csv
+backtest_output/kb_raw_items.json
+
